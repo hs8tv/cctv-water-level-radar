@@ -298,6 +298,14 @@
             margin-top: 10px;
             padding-top: 10px;
             border-top: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .kml-layer-item .layer-info {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
         }
         .kml-layer-item label {
             display: inline-flex;
@@ -305,6 +313,8 @@
             font-size: 14px;
             font-weight: 600;
             color: #2d3748;
+            margin-right: 10px;
+            flex-grow: 1;
         }
         .kml-layer-item input[type="checkbox"] {
             margin-right: 8px;
@@ -313,6 +323,18 @@
             width: 100%;
             margin-top: 5px;
             cursor: pointer;
+        }
+        .remove-btn {
+            background: none;
+            border: none;
+            color: #e53e3e;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .remove-btn:hover {
+            transform: scale(1.2);
         }
     </style>
 </head>
@@ -592,7 +614,6 @@
 
                         if (groundOverlays.length > 0) {
                             groundOverlays.forEach(overlay => {
-                                // Corrected: Use optional chaining to safely access nested elements
                                 const name = overlay.querySelector('name')?.textContent || file.name.replace('.kml', '');
                                 const iconElement = overlay.querySelector('Icon');
                                 const href = iconElement?.querySelector('href')?.textContent;
@@ -612,12 +633,16 @@
                                         
                                         const layerItem = document.createElement('div');
                                         layerItem.className = 'kml-layer-item';
+                                        layerItem.id = layerId; // Add ID to the container for removal
                                         layerItem.innerHTML = `
-                                            <label>
-                                                <input type="checkbox" id="${layerId}-checkbox" checked>
-                                                ${name}
-                                            </label>
-                                            <input type="range" id="${layerId}-slider" min="0" max="1" step="0.01" value="0.9">
+                                            <div class="layer-info">
+                                                <label>
+                                                    <input type="checkbox" id="${layerId}-checkbox" checked>
+                                                    ${name}
+                                                </label>
+                                                <input type="range" id="${layerId}-slider" min="0" max="1" step="0.01" value="0.9">
+                                            </div>
+                                            <button class="remove-btn" data-layer-id="${layerId}">&times;</button>
                                         `;
                                         kmlLayersList.appendChild(layerItem);
 
@@ -633,6 +658,14 @@
 
                                         document.getElementById(`${layerId}-slider`).addEventListener('input', function() {
                                             kmlLayers[layerId].setOpacity(this.value);
+                                        });
+
+                                        // Event listener for the new remove button
+                                        document.querySelector(`#${layerId} .remove-btn`).addEventListener('click', function() {
+                                            const idToRemove = this.dataset.layerId;
+                                            radarLayer.removeLayer(kmlLayers[idToRemove]); // Remove from map
+                                            document.getElementById(idToRemove).remove(); // Remove from UI
+                                            delete kmlLayers[idToRemove]; // Remove from cache
                                         });
                                     }
                                 }
