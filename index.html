@@ -3,692 +3,398 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เครื่องมือสร้างไฟล์ GeoJSON และแสดงเรดาร์</title>
+    <title>GeoJSON Infographic</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+        :root {
+            --primary-color: #004d40;
+            --secondary-color: #00796b;
+            --background-color: #f0f4f8;
+            --text-color: #333;
+            --card-bg: #ffffff;
+            --border-color: #e0e0e0;
+            --shadow-light: rgba(0,0,0,0.1);
+        }
+        body {
+            font-family: 'Sarabun', sans-serif;
             margin: 0;
             padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            background-color: #f5f5f5;
         }
-        #map { 
-            flex-grow: 1;
-            height: calc(100vh - 80px);
-            width: 100%;
-        }
-        .controls-container {
-            position: absolute;
-            top: 80px;
-            left: 50px;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            max-width: 380px;
-            backdrop-filter: blur(5px);
-            border: 1px solid #e0e0e0;
-            transition: all 0.4s ease-in-out;
-        }
-        .controls-container.collapsed {
-            width: 50px;
-            height: 50px;
-            padding: 0;
-            overflow: hidden;
-            border-radius: 50%;
-            align-items: center;
-            justify-content: center;
-        }
-        .controls-container.collapsed .controls-content,
-        .controls-container.collapsed .controls-title {
-            display: none;
-        }
-        .controls-container.collapsed .toggle-btn {
-            font-size: 24px;
-            color: #3182ce;
-        }
-        .controls-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        .controls-title {
-            font-weight: 700;
-            color: #1a202c;
-        }
-        .toggle-btn {
-            background: none;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            color: #718096;
-            transition: transform 0.3s ease;
-            transform: rotate(0deg);
-            padding: 0;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .toggle-btn.rotated {
-            transform: rotate(180deg);
-        }
-        .controls-container.collapsed .toggle-btn.rotated {
-             transform: rotate(360deg);
-        }
-        .controls-container.collapsed .toggle-btn {
-             color: #3182ce;
-        }
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .input-group label {
-            font-weight: 600;
-            color: #2d3748;
-            font-size: 14px;
-        }
-        .input-group input[type="text"] {
-            padding: 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            flex-grow: 1;
-            width: 100%;
-            box-sizing: border-box;
-            font-size: 14px;
-            background-color: #f8fafc;
-            transition: border-color 0.3s ease;
-        }
-        .input-group input[type="text"]:focus {
-            outline: none;
-            border-color: #4299e1;
-            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
-        }
-        .input-group button {
-            padding: 12px 18px;
-            cursor: pointer;
-            border-radius: 8px;
-            border: none;
-            transition: all 0.3s ease;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        #add-marker-btn {
-            background-color: #38a169;
+        header {
+            background-color: var(--primary-color);
             color: white;
-        }
-        #add-marker-btn:hover {
-            background-color: #2f855a;
-            transform: translateY(-1px);
-        }
-        .action-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        .action-btn {
-            padding: 12px;
-            cursor: pointer;
-            border-radius: 8px;
-            border: none;
-            transition: all 0.3s ease;
-            font-weight: 600;
-            font-size: 14px;
+            padding: 24px;
             text-align: center;
+            box-shadow: 0 4px 8px var(--shadow-light);
         }
-        #download-btn {
-            background-color: #3182ce;
-            color: white;
-        }
-        #download-btn:hover {
-            background-color: #2b6cb0;
-            transform: translateY(-1px);
-        }
-        #import-geojson-btn {
-            background-color: #718096;
-            color: white;
-        }
-        #import-geojson-btn:hover {
-            background-color: #4a5568;
-            transform: translateY(-1px);
-        }
-        #import-kml-btn {
-            background-color: #718096;
-            color: white;
-        }
-        #import-kml-btn:hover {
-            background-color: #4a5568;
-            transform: translateY(-1px);
-        }
-        #clear-btn {
-            background-color: #e53e3e;
-            color: white;
-        }
-        #clear-btn:hover {
-            background-color: #c53030;
-            transform: translateY(-1px);
-        }
-        .leaflet-popup-content-wrapper {
-            border-radius: 12px;
-            width: 350px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-        }
-        .leaflet-popup-content {
-            line-height: 1.6;
-            padding: 20px;
-            width: 90% !important;
-            margin: 0;
-        }
-        .leaflet-popup-content h3 {
-            margin-top: 0;
-            margin-bottom: 12px;
-            color: #2d3748;
-            font-size: 18px;
-            font-weight: 600;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 8px;
-        }
-        .leaflet-popup-content p {
-            margin: 8px 0;
-            color: #4a5568;
-        }
-        .leaflet-popup-content a {
-            color: #3182ce;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .leaflet-popup-content a:hover {
-            text-decoration: underline;
-            color: #2b6cb0;
-        }
-        .header {
-            background: linear-gradient(135deg, #1a365d 0%, #2d3748 100%);
-            color: white;
-            padding: 20px;
+        .container {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            position: relative;
-            height: 30px;
+            flex-grow: 1;
+            padding: 20px;
+            gap: 24px;
+            flex-wrap: wrap;
         }
-        .header h1 {
+        #map {
+            flex: 2;
+            min-height: 400px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px var(--shadow-light);
+            background-color: #e6eef5;
+        }
+        .infographic-panel {
+            flex: 1;
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .card {
+            background-color: var(--card-bg);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px var(--shadow-light);
+            transition: transform 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        h2 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 12px;
+            margin-top: 0;
+            font-size: 1.5em;
+        }
+        #station-list ul {
+            list-style: none;
+            padding: 0;
+            max-height: 400px;
+            overflow-y: auto;
             margin: 0;
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
         }
-        .timestamp {
-            font-size: 16px;
-            color: #e2e8f0;
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            font-weight: 500;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 8px 16px;
-            border-radius: 20px;
-            backdrop-filter: blur(5px);
-        }
-        #file-input-geojson, #file-input-kml {
-            display: none;
-        }
-        .popup-content input {
-            width: 100%;
-            margin-bottom: 12px;
-            padding: 10px;
-            box-sizing: border-box;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 14px;
-            background-color: #f8fafc;
-        }
-        .popup-content input:focus {
-            outline: none;
-            border-color: #4299e1;
-            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
-        }
-        .popup-content label {
-            font-weight: 600;
-            margin-top: 12px;
-            display: block;
-            color: #2d3748;
-            font-size: 14px;
-        }
-        .form-group {
-            margin-bottom: 16px;
-        }
-        #saveStationBtn {
-            background-color: #38a169;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            width: 100%;
-            transition: background-color 0.3s ease;
-        }
-        #saveStationBtn:hover {
-            background-color: #2f855a;
-        }
-        .station-info {
-            background-color: #f8fafc;
+        #station-list li {
+            background-color: #f9f9f9;
             padding: 16px;
             border-radius: 8px;
-            margin-bottom: 16px;
-            border-left: 4px solid #3182ce;
+            margin-bottom: 12px;
+            border-left: 5px solid var(--secondary-color);
+            transition: background-color 0.2s ease;
+            cursor: pointer;
         }
-        .station-info p {
+        #station-list li:hover {
+            background-color: #f0f0f0;
+        }
+        #station-list p {
             margin: 6px 0;
         }
-        .kml-layer-item {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #e2e8f0;
+        #station-list p strong {
+            color: var(--secondary-color);
+        }
+        .stat-card {
+            text-align: center;
+        }
+        .stat-card .icon {
+            font-size: 48px;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+        .stat-card .count {
+            font-size: 3em;
+            font-weight: bold;
+            color: var(--secondary-color);
+            margin: 10px 0;
+        }
+        .stat-card .label {
+            font-size: 1.2em;
+            color: #666;
+        }
+        .button-group {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
+            flex-direction: column;
+            gap: 12px;
         }
-        .kml-layer-item .layer-info {
-            display: flex;
-            align-items: center;
-            flex-grow: 1;
-        }
-        .kml-layer-item label {
-            display: inline-flex;
-            align-items: center;
-            font-size: 14px;
-            font-weight: 600;
-            color: #2d3748;
-            margin-right: 10px;
-            flex-grow: 1;
-        }
-        .kml-layer-item input[type="checkbox"] {
-            margin-right: 8px;
-        }
-        .kml-layer-item input[type="range"] {
-            width: 100%;
-            margin-top: 5px;
-            cursor: pointer;
-        }
-        .remove-btn {
-            background: none;
+        .action-button {
+            padding: 14px 24px;
             border: none;
-            color: #e53e3e;
-            font-size: 20px;
+            border-radius: 8px;
+            background-color: var(--secondary-color);
+            color: white;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .action-button:hover {
+            background-color: #004d40;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+        }
+        #file-input {
+            display: none;
+        }
+        .link-text {
+            display: inline-block;
+            margin-right: 12px;
+            color: var(--primary-color);
+            text-decoration: underline;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .link-text:hover {
+            color: var(--secondary-color);
+        }
+        
+        /* Modal Popup Styles for iframe */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            position: relative;
+            width: 90%;
+            max-width: 900px;
+            height: 80%;
+            display: flex;
+            flex-direction: column;
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            color: #aaa;
+            font-size: 32px;
             font-weight: bold;
             cursor: pointer;
-            transition: transform 0.2s ease;
         }
-        .remove-btn:hover {
-            transform: scale(1.2);
+        .close-btn:hover,
+        .close-btn:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        #iframe-container {
+            flex-grow: 1;
+            padding-top: 20px;
+        }
+        #iframe-viewer {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+        }
+        .modal-footer {
+            margin-top: 20px;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            #map {
+                min-height: 300px;
+            }
+            .modal-content {
+                width: 95%;
+                height: 90%;
+            }
         }
     </style>
 </head>
 <body>
-    <header class="header">
-        <h1>เครื่องมือสร้างไฟล์ GeoJSON และแสดงเรดาร์</h1>
-        <div class="timestamp" id="thai-timestamp"></div>
+    <header>
+        <h1>ข้อมูล Infographic สถานี GeoJSON</h1>
+        <p>แสดงผลและสรุปข้อมูลเชิงพื้นที่</p>
     </header>
 
-    <div id="map"></div>
+    <div class="container">
+        <div id="map"></div>
 
-    <div class="controls-container">
-        <div class="controls-header">
-            <span class="controls-title">เพิ่ม/จัดการสถานี</span>
-            <button class="toggle-btn" id="toggle-controls">▾</button>
+        <div class="infographic-panel">
+            <div class="card stat-card">
+                <h2>ภาพรวมข้อมูล</h2>
+                <i class="fas fa-map-marker-alt icon"></i>
+                <div class="count" id="total-stations">0</div>
+                <div class="label">สถานีทั้งหมด</div>
+            </div>
+
+            <div class="card" id="station-list">
+                <h2>รายละเอียดสถานี</h2>
+                <div id="no-data-message" style="text-align: center; color: #888; margin-top: 20px;">
+                    กรุณานำเข้าไฟล์ GeoJSON
+                </div>
+                <ul></ul>
+            </div>
+            
+            <div class="button-group">
+                <button id="import-btn" class="action-button"><i class="fas fa-file-import"></i> นำเข้าไฟล์ GeoJSON</button>
+            </div>
+            <input type="file" id="file-input" accept=".geojson, .json">
         </div>
-        <div class="controls-content">
-            <div id="input-coords" class="input-group">
-                <label for="coords-input">ใส่พิกัด LAT/LONG ในช่อง</label>
-                <input type="text" id="coords-input" placeholder="เช่น 14.59002, 100.45375">
-                <button id="add-marker-btn">ปักหมุด</button>
+    </div>
+    
+    <!-- The Modal for iframe -->
+    <div id="water-level-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <div id="iframe-container">
+                <iframe id="iframe-viewer" src=""></iframe>
             </div>
-            
-            <div class="action-buttons">
-                <button id="download-btn" class="action-btn">ดาวน์โหลด GeoJSON</button>
-                <button id="import-geojson-btn" class="action-btn">นำเข้า GeoJSON</button>
-                <button id="import-kml-btn" class="action-btn">นำเข้าไฟล์ KML</button>
-                <button id="clear-btn" class="action-btn">ล้างข้อมูลทั้งหมด</button>
-            </div>
-            
-            <div id="kml-layers-list"></div>
-
-            <input type="file" id="file-input-geojson" accept=".geojson, .json" multiple>
-            <input type="file" id="file-input-kml" accept=".kml" multiple>
         </div>
     </div>
 
     <script>
-        function updateThaiTimestamp() {
-            const now = new Date();
-            const options = {
-                timeZone: 'Asia/Bangkok',
-                hour12: false,
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            };
-            const formatter = new Intl.DateTimeFormat('th-TH', options);
-            document.getElementById('thai-timestamp').textContent = formatter.format(now);
-        }
-        setInterval(updateThaiTimestamp, 1000);
-        updateThaiTimestamp();
-
+        let currentGeojsonData = null;
         const map = L.map('map').setView([13.738694, 100.49633], 6);
         const markersLayer = L.featureGroup().addTo(map);
-        const radarLayer = L.layerGroup().addTo(map);
 
-        const googleHybrid = L.tileLayer("https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}", {
+        L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
             maxZoom: 20,
-            subdomains: ['mt0','mt1','mt2','mt3'],
-            attribution: "Map data © Google"
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            attribution: 'Map data &copy; <a href="https://www.google.com/maps">Google Maps</a>'
         }).addTo(map);
 
-        const baseLayers = {
-            "Google Hybrid (Free)": googleHybrid,
-            "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }),
-            "Esri Imagery": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-            }),
-            "OpenTopoMap": L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
-                maxZoom: 17,
-                attribution: "© OpenTopoMap (© OSM contributors)"
-            })
-        };
-        L.control.layers(baseLayers, null, { collapsed: false }).addTo(map);
+        document.getElementById('import-btn').addEventListener('click', function() {
+            document.getElementById('file-input').click();
+        });
 
-        const stations = { "type": "FeatureCollection", "features": [] };
-        const kmlLayers = {};
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
 
-        function createDisplayPopupContent(feature) {
-            const props = feature.properties;
-            const lon = feature.geometry.coordinates[0];
-            const lat = feature.geometry.coordinates[1];
-            
-            return `
-                <div class="popup-content">
-                    <h3>${props.stationName || 'ไม่ระบุชื่อ'}</h3>
-                    <div class="station-info">
-                        <p><strong>รหัสสถานี:</strong> ${props.stationCode || 'N/A'}</p>
-                        <p><strong>พิกัด:</strong> ละติจูด ${lat.toFixed(4)}, ลองจิจูด ${lon.toFixed(4)}</p>
-                        ${props.cctvUrl ? `<p><strong>กล้อง CCTV:</strong> <a href="${props.cctvUrl}" target="_blank">ดูภาพสด</a></p>` : ''}
-                        ${props.waterLevelLink ? `<p><a href="${props.waterLevelLink}" target="_blank">เช็คระดับน้ำ (ข้อมูลเพิ่มเติม)</a></p>` : ''}
-                    </div>
-                </div>
-            `;
-        }
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const geojsonData = JSON.parse(event.target.result);
+                    if (geojsonData.type === "FeatureCollection" && Array.isArray(geojsonData.features)) {
+                        currentGeojsonData = geojsonData;
+                        displayInfographic(geojsonData);
+                    } else {
+                        console.error("รูปแบบไฟล์ GeoJSON ไม่ถูกต้อง");
+                    }
+                } catch (e) {
+                    console.error("เกิดข้อผิดพลาดในการอ่านไฟล์ GeoJSON", e);
+                }
+            };
+            reader.readAsText(file);
+        });
 
-        function createEditPopupContent(feature) {
-            const props = feature.properties;
-            
-            return `
-                <div class="popup-content">
-                    <h4>เพิ่มสถานีใหม่</h4>
-                    <div class="form-group">
-                        <label for="stationName">ชื่อสถานี: </label>
-                        <input type="text" id="stationName" value="${props.stationName || ''}" placeholder="กรอกชื่อสถานี">
-                    </div>
-                    <div class="form-group">
-                        <label for="stationCode">รหัสสถานี: </label>
-                        <input type="text" id="stationCode" value="${props.stationCode || ''}" placeholder="กรอกรหัสสถานี">
-                    </div>
-                    <div class="form-group">
-                        <label for="cctvUrl">URL กล้อง: </label>
-                        <input type="text" id="cctvUrl" value="${props.cctvUrl || ''}" placeholder="กรอกลิงก์กล้อง CCTV (ถ้ามี)">
-                    </div>
-                    <div class="form-group">
-                        <label for="waterLevelLink">ลิงก์ระดับน้ำ: </label>
-                        <input type="text" id="waterLevelLink" value="${props.waterLevelLink || ''}" placeholder="กรอกลิงก์ระดับน้ำ (ถ้ามี)">
-                    </div>
-                    <button id="saveStationBtn">บันทึกข้อมูล</button>
-                </div>
-            `;
-        }
+        function displayInfographic(geojsonData) {
+            markersLayer.clearLayers();
+            const stationList = document.querySelector('#station-list ul');
+            stationList.innerHTML = '';
+            document.getElementById('no-data-message').style.display = 'none';
 
-        function createStationMarker(feature) {
-            const lon = feature.geometry.coordinates[0];
-            const lat = feature.geometry.coordinates[1];
-            const marker = L.marker([lat, lon]).addTo(markersLayer);
+            let bounds = null;
 
-            marker.bindPopup(createDisplayPopupContent(feature));
-            return marker;
-        }
+            if (geojsonData.features.length > 0) {
+                geojsonData.features.forEach(feature => {
+                    if (feature.geometry.type === "Point") {
+                        const lon = feature.geometry.coordinates[0];
+                        const lat = feature.geometry.coordinates[1];
+                        const marker = L.marker([lat, lon]).addTo(markersLayer);
+                        
+                        const props = feature.properties;
+                        const popupContent = `
+                            <h3>${props.stationName || 'ไม่ระบุชื่อ'}</h3>
+                            <p><strong>รหัส:</strong> ${props.stationCode || 'N/A'}</p>
+                            <p><strong>พิกัด:</strong> ${lat.toFixed(4)}, ${lon.toFixed(4)}</p>
+                        `;
+                        marker.bindPopup(popupContent);
 
-        document.getElementById('add-marker-btn').addEventListener('click', function() {
-            const coordsInput = document.getElementById('coords-input').value;
-            const parts = coordsInput.split(',').map(s => s.trim());
-            
-            if (parts.length === 2) {
-                const lat = parseFloat(parts[0]);
-                const lon = parseFloat(parts[1]);
-                
-                if (!isNaN(lat) && !isNaN(lon)) {
-                    const newFeature = {
-                        "type": "Feature",
-                        "geometry": { "type": "Point", "coordinates": [lon, lat] },
-                        "properties": {
-                            stationName: "",
-                            stationCode: "",
-                            cctvUrl: "",
-                            waterLevelLink: ""
+                        const listItem = document.createElement('li');
+                        listItem.setAttribute('data-lat', lat);
+                        listItem.setAttribute('data-lon', lon);
+                        
+                        let linksHtml = '';
+                        if (props.cctvUrl) {
+                            linksHtml += `<a href="${props.cctvUrl}" target="_blank" class="link-text">ดูภาพสด</a>`;
                         }
-                    };
-                    stations.features.push(newFeature);
-                    
-                    const marker = L.marker([lat, lon]).addTo(markersLayer);
-                    const popupContentForm = createEditPopupContent(newFeature);
-                    
-                    marker.bindPopup(popupContentForm).openPopup();
-                    map.setView([lat, lon], 15);
-
-                    setTimeout(function() {
-                        const saveBtn = document.getElementById('saveStationBtn');
-                        if (saveBtn) {
-                            saveBtn.onclick = function() {
-                                const name = document.getElementById('stationName').value;
-                                const code = document.getElementById('stationCode').value;
-                                const url = document.getElementById('cctvUrl').value;
-                                const waterLink = document.getElementById('waterLevelLink').value;
-
-                                if (name && code) {
-                                    newFeature.properties = {
-                                        stationName: name,
-                                        stationCode: code,
-                                        cctvUrl: url,
-                                        waterLevelLink: waterLink
-                                    };
-                                    
-                                    marker.setPopupContent(createDisplayPopupContent(newFeature));
-                                    marker.openPopup();
-                                    
-                                    alert("บันทึกข้อมูลสถานีเรียบร้อย!");
-                                } else {
-                                    alert("กรุณากรอกชื่อและรหัสสถานี");
-                                }
-                            };
+                        if (props.waterLevelLink) {
+                            linksHtml += `<a href="#" class="link-text water-level-link" data-url="${props.waterLevelLink}">เช็คระดับน้ำ</a>`;
                         }
-                    }, 100);
-                } else {
-                    alert("กรุณาใส่ค่าพิกัดที่ถูกต้อง (ตัวเลข)");
+
+                        listItem.innerHTML = `
+                            <p><strong>ชื่อสถานี:</strong> ${props.stationName || 'ไม่ระบุชื่อ'}</p>
+                            <p><strong>รหัส:</strong> ${props.stationCode || 'N/A'}</p>
+                            <p><strong>พิกัด:</strong> ${lat.toFixed(4)}, ${lon.toFixed(4)}</p>
+                            <p>${linksHtml}</p>
+                        `;
+
+                        listItem.addEventListener('click', function() {
+                            const lat = parseFloat(this.getAttribute('data-lat'));
+                            const lon = parseFloat(this.getAttribute('data-lon'));
+                            map.flyTo([lat, lon], 12); // Zooms to the clicked location
+                            marker.openPopup();
+                        });
+
+                        stationList.appendChild(listItem);
+                        
+                        if (!bounds) {
+                            bounds = new L.LatLngBounds([lat, lon], [lat, lon]);
+                        } else {
+                            bounds.extend([lat, lon]);
+                        }
+                    }
+                });
+
+                document.querySelectorAll('.water-level-link').forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const url = this.getAttribute('data-url');
+                        showWaterLevelModal(url);
+                    });
+                });
+
+                if (bounds) {
+                    map.fitBounds(bounds, { padding: [50, 50] });
                 }
             } else {
-                alert("กรุณาใส่ค่าละติจูดและลองจิจูดในรูปแบบที่ถูกต้อง (เช่น 14.59002, 100.45375)");
+                document.getElementById('no-data-message').style.display = 'block';
             }
-        });
-        
-        document.getElementById('download-btn').addEventListener('click', function() {
-            const dataStr = JSON.stringify(stations, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-            const exportFileDefaultName = 'stations.geojson';
+
+            document.getElementById('total-stations').textContent = geojsonData.features.length;
+        }
+
+        function showWaterLevelModal(url) {
+            const modal = document.getElementById('water-level-modal');
+            const iframe = document.getElementById('iframe-viewer');
             
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportFileDefaultName);
-            linkElement.click();
+            iframe.src = url;
+            modal.style.display = 'flex';
+        }
+        
+        document.querySelector('.close-btn').addEventListener('click', function() {
+            document.getElementById('water-level-modal').style.display = 'none';
+            document.getElementById('iframe-viewer').src = ''; // Clear iframe src
         });
 
-        document.getElementById('import-geojson-btn').addEventListener('click', function() {
-            document.getElementById('file-input-geojson').click();
-        });
-
-        document.getElementById('import-kml-btn').addEventListener('click', function() {
-            document.getElementById('file-input-kml').click();
-        });
-
-        document.getElementById('clear-btn').addEventListener('click', function() {
-            if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลทั้งหมด? การกระทำนี้ไม่สามารถย้อนกลับได้")) {
-                stations.features = [];
-                markersLayer.clearLayers();
-                radarLayer.clearLayers();
-                document.getElementById('kml-layers-list').innerHTML = '';
-                alert("ล้างข้อมูลทั้งหมดเรียบร้อยแล้ว!");
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('water-level-modal');
+            if (event.target === modal) {
+                document.getElementById('water-level-modal').style.display = 'none';
+                document.getElementById('iframe-viewer').src = ''; // Clear iframe src
             }
-        });
-
-        document.getElementById('file-input-geojson').addEventListener('change', function(e) {
-            const files = e.target.files;
-            if (!files || files.length === 0) return;
-            
-            Array.from(files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    try {
-                        const geojsonData = JSON.parse(event.target.result);
-                        if (geojsonData.type === "FeatureCollection" && Array.isArray(geojsonData.features)) {
-                            stations.features = [];
-                            markersLayer.clearLayers();
-                            
-                            geojsonData.features.forEach(feature => {
-                                if (feature.geometry.type === "Point") {
-                                    stations.features.push(feature);
-                                    createStationMarker(feature);
-                                }
-                            });
-                            alert(`นำเข้าไฟล์ GeoJSON สำเร็จ! เพิ่ม ${geojsonData.features.length} สถานี`);
-                        } else {
-                            console.error("รูปแบบไฟล์ GeoJSON ไม่ถูกต้อง", file.name);
-                            alert("รูปแบบไฟล์ GeoJSON ไม่ถูกต้อง");
-                        }
-                    } catch (e) {
-                        console.error("เกิดข้อผิดพลาดในการอ่านไฟล์ GeoJSON", file.name, e);
-                        alert("เกิดข้อผิดพลาดในการอ่านไฟล์ GeoJSON");
-                    }
-                };
-                reader.readAsText(file);
-            });
-            e.target.value = '';
-        });
-
-        document.getElementById('file-input-kml').addEventListener('change', function(e) {
-            const files = e.target.files;
-            if (!files || files.length === 0) return;
-            
-            const kmlLayersList = document.getElementById('kml-layers-list');
-
-            Array.from(files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    try {
-                        const parser = new DOMParser();
-                        const kmlDoc = parser.parseFromString(event.target.result, "text/xml");
-                        const groundOverlays = kmlDoc.querySelectorAll('GroundOverlay');
-
-                        if (groundOverlays.length > 0) {
-                            groundOverlays.forEach(overlay => {
-                                const name = overlay.querySelector('name')?.textContent || file.name.replace('.kml', '');
-                                const iconElement = overlay.querySelector('Icon');
-                                const href = iconElement?.querySelector('href')?.textContent;
-                                const latLonBox = overlay.querySelector('LatLonBox');
-                                
-                                if (href && latLonBox) {
-                                    const north = parseFloat(latLonBox.querySelector('north')?.textContent);
-                                    const south = parseFloat(latLonBox.querySelector('south')?.textContent);
-                                    const east = parseFloat(latLonBox.querySelector('east')?.textContent);
-                                    const west = parseFloat(latLonBox.querySelector('west')?.textContent);
-                                    
-                                    if (!isNaN(north) && !isNaN(south) && !isNaN(east) && !isNaN(west)) {
-                                        const bounds = [[south, west], [north, east]];
-                                        const imageOverlay = L.imageOverlay(href, bounds, { opacity: 0.9 }).addTo(radarLayer);
-                                        
-                                        const layerId = `kml-layer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                                        
-                                        const layerItem = document.createElement('div');
-                                        layerItem.className = 'kml-layer-item';
-                                        layerItem.id = layerId; // Add ID to the container for removal
-                                        layerItem.innerHTML = `
-                                            <div class="layer-info">
-                                                <label>
-                                                    <input type="checkbox" id="${layerId}-checkbox" checked>
-                                                    ${name}
-                                                </label>
-                                                <input type="range" id="${layerId}-slider" min="0" max="1" step="0.01" value="0.9">
-                                            </div>
-                                            <button class="remove-btn" data-layer-id="${layerId}">&times;</button>
-                                        `;
-                                        kmlLayersList.appendChild(layerItem);
-
-                                        kmlLayers[layerId] = imageOverlay;
-                                        
-                                        document.getElementById(`${layerId}-checkbox`).addEventListener('change', function() {
-                                            if (this.checked) {
-                                                radarLayer.addLayer(kmlLayers[layerId]);
-                                            } else {
-                                                radarLayer.removeLayer(kmlLayers[layerId]);
-                                            }
-                                        });
-
-                                        document.getElementById(`${layerId}-slider`).addEventListener('input', function() {
-                                            kmlLayers[layerId].setOpacity(this.value);
-                                        });
-
-                                        // Event listener for the new remove button
-                                        document.querySelector(`#${layerId} .remove-btn`).addEventListener('click', function() {
-                                            const idToRemove = this.dataset.layerId;
-                                            radarLayer.removeLayer(kmlLayers[idToRemove]); // Remove from map
-                                            document.getElementById(idToRemove).remove(); // Remove from UI
-                                            delete kmlLayers[idToRemove]; // Remove from cache
-                                        });
-                                    }
-                                }
-                            });
-                            alert(`นำเข้าไฟล์ KML สำเร็จ! เพิ่ม ${groundOverlays.length} เลเยอร์`);
-                        } else {
-                            alert("ไม่พบข้อมูล GroundOverlay ในไฟล์ KML");
-                        }
-                    } catch (e) {
-                        console.error("เกิดข้อผิดพลาดในการอ่านไฟล์ KML", file.name, e);
-                        alert("เกิดข้อผิดพลาดในการอ่านไฟล์ KML");
-                    }
-                };
-                reader.readAsText(file);
-            });
-            e.target.value = '';
-        });
-        
-        document.getElementById('toggle-controls').addEventListener('click', function() {
-            const controlsContainer = document.querySelector('.controls-container');
-            const toggleBtn = document.getElementById('toggle-controls');
-            controlsContainer.classList.toggle('collapsed');
-            toggleBtn.classList.toggle('rotated');
         });
     </script>
 </body>
